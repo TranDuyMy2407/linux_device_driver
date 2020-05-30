@@ -72,7 +72,6 @@ static int __init my_driver_init(void)
 	int i,ret;
 	gpio_base  = ioremap(BASE_ADDR, 100);
 	irq_num = gpio_to_irq(pin_irq);
-	irq_set_irq_type(irq_num, IRQ_TYPE_EDGE_RISING);
 	ret = request_irq(irq_num, (irq_handler_t)ISR,IRQ_TYPE_LEVEL_HIGH,"my_irq",NULL);
 
 
