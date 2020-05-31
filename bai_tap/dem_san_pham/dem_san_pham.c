@@ -3,7 +3,7 @@
 int pin_mode(int pin, int *addr_base,int mode)
 {
 
-	if( (pin != (int)pin) ||  (pin > 40)  || (pin < 0) )
+	if( pin > 40  || pin < 0 )
 	{
 		pr_info("pin number  is  invalid !!!");
 		return EINVAL;
@@ -22,9 +22,9 @@ int pin_mode(int pin, int *addr_base,int mode)
 	}
 }
 
-int pin_set(int pin, int *addr_base,bool level)
+int pin_set(int pin, int *addr_base,int level)
 {
-	if( (pin != (int)pin) || (pin > 40) || (pin < 0) )
+	if( pin > 40 || pin < 0 )
 	{
 		pr_info("pin number is invalid !!! ");
 		return EINVAL;
