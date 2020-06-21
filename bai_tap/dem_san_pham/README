@@ -1,0 +1,7 @@
+1 cảm biến hồng ngoại sẽ được kết nối với 1 chân  GPIO, khi cảm biến bị cản, sẽ tạo ra 1 tín hiệu mức thấp
+, vì ta lập trình nhận ngắt tín hiệu mức cao, nên dây tín hiệu của cảm biến sẽ được nối với 1 cổng đảo 74HC04
+rồi nối với chân GPIO. 
+
+Khi nhận ngắt, giá trị led 7 đoạn sẽ tăng lên
+
+Driver sử dụng hàm ioremap để ánh xạ địa chỉ vật lý thành địa chỉ ảo, và lập trình như vi điều khiển
