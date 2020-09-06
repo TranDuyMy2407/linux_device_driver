@@ -1,5 +1,0 @@
-sử dụng app ở tầng user để ghi vào device file tạo ra, khi số lớn hơn 1 thì led sáng, bằng 0 thì led tắt
-
-driver sử dụng hàm ioremap để ánh xạ địa chỉ vật lý của vùng GPIO thành địa chỉ ảo
-hàm trả về một con trỏ chứa địa chỉ đầu tiên của vùng địa chỉ ảo vừa được ánh xạ, dùng
-con trỏ này để di chuyển trên vùng địa chỉ và lập trình vào thanh ghi thông qua con trỏ này
