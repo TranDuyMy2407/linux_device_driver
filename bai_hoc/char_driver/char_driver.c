@@ -5,11 +5,13 @@
 #include<linux/device.h>
 #include<linux/slab.h>
 
+#define DEV_MEM_SIZE 512
+
 struct cdev *my_cdev;
 struct class *my_class;
 struct device *my_device;
-dev_t dev;
-char buffer[1000];
+dev_t dev_num;
+char buffer[DEV_MEM_SIZE];
 
 
 
@@ -27,61 +29,57 @@ static int my_release(struct inode *inode ,struct file *filp)
 }
 
 
-static ssize_t my_read(struct file *filp , char __user *buf , size_t len, loff_t *off)
+static ssize_t my_read(struct file *filp , char __user *buf , size_t count, loff_t *f_pos)
 {
-	ssize_t ret;
-	if(sizeof(buffer) <= *off)
-		ret = 0;
+	pr_info("the number of bytes requested : %zu",count);
+	pr_info("file pointer position : %lld",*f_pos);
+	if(count > (DEV_MEM_SIZE - *f_pos))
+		count = DEV_MEM_SIZE - *f_pos;
 
-	else
-	{
-		
-		if((sizeof(buffer) - *off) > len)
-			ret = len;
-		
-		else
-			ret = sizeof(buffer) - *off;
+	if(copy_to_user(buf,buffer,count))
+        	        return  -EFAULT;
 
+	*f_pos += count;	
 
-		if(copy_to_user(buf,buffer,ret))
-        	        ret = -EFAULT;
+	pr_info("the number of bytes requested : %zu",count);
+        pr_info("file pointer position : %lld",*f_pos);
 
-       		else
-        	        *off += ret;
-	
-
-		
-	}
-
-
-	return ret;
+	return count;
 
 }
 
-static ssize_t my_write(struct file *filp ,const  char *buf, size_t len, loff_t *off)
+static ssize_t my_write(struct file *filp ,const  char *buf, size_t count, loff_t *f_pos)
 {
-	ssize_t ret;
-	memset(buffer,0,1000);
-	
-	if((sizeof(buffer) - *off) < len)
-		ret = -ENOSPC;
+	if((DEV_MEM_SIZE - *f_pos) < count)
+		count = DEV_MEM_SIZE - *f_pos;
 
-	else
-	{
-		if(copy_from_user(buffer,buf,len))
-			ret = -EFAULT;
+	if(copy_from_user(buffer,buf,count))
+		return  -EFAULT;
 
-		else
-		{
-			ret = len;
-			*off += ret;
-		}
-	}
+	*f_pos += count;
 
-	return ret;
+	return count;
 }
 
 
+
+static loff_t my_llseek(struct file *filp, loff_t offset, int whence)
+{
+	if( offset > DEV_MEM_SIZE || offset < 0 )
+		return -EINVAL;
+	else
+	{
+		if(whence == SEEK_SET)
+			filp->f_pos = offset;
+		else if(whence == SEEK_CUR)
+			filp->f_pos += offset;
+
+		else if(whence == SEEK_END)
+			filp->f_pos = DEV_MEM_SIZE + offset;
+	}
+
+	return filp->f_pos;
+}
 
 
 static struct file_operations fops =
@@ -89,7 +87,9 @@ static struct file_operations fops =
         .open = my_open,
         .release = my_release,
         .read = my_read,
-        .write = my_write
+        .write = my_write,
+	.llseek = my_llseek,
+	.owner = THIS_MODULE
 };
 
 
@@ -97,55 +97,65 @@ static struct file_operations fops =
 static int __init char_driver_init(void)
 {
 
-
-	if(alloc_chrdev_region(&dev,0,1,"my_device")<0)
+	int ret = alloc_chrdev_region(&dev_num,0,1,"my_device");
+	if(ret < 0)
 	{
-		pr_info("cant allocate the major number !!! \n");
-		return -1;
+		pr_err("allocate chrdev failed !! \n");
+		goto out;
 	}
-
-	my_cdev = cdev_alloc();	
-	my_cdev->owner = THIS_MODULE;
+	
+	my_cdev = cdev_alloc();
 	my_cdev->ops = &fops;
 
-	if(cdev_add(my_cdev,dev,1) < 0)
+	ret = cdev_add(my_cdev,dev_num,1);
+	if(ret < 0)
 	{
-		pr_info("can not add a file into the system !!! \n");
-		goto r_class;
-	}		
-	my_class = class_create(THIS_MODULE,"my_class");
-	if(my_class == NULL)
-	{
-		pr_info("cant create class device !!! \n");
-		goto r_class;
+		pr_err("cdev add failed !! \n");
+		goto unregister_dev_num;
 	}
 
-
-	my_device = device_create(my_class,NULL,dev,NULL,"my_device");
-	if(my_device == NULL)
+	my_class = class_create(THIS_MODULE,"my_class_device");
+	if(IS_ERR(my_class))
 	{
-		pr_info("cant create the device file !!! \n");
-		goto r_device;
+		pr_err("class create failed !! \n");
+		ret = PTR_ERR(my_class);
+		goto cdev_unregister;
 	}
 
-	
-r_device:
-	class_destroy(my_class);
-r_class:
-	unregister_chrdev_region(dev,1);
-	
+	my_device = device_create(my_class,NULL,dev_num,NULL,"my_device");
+	if(IS_ERR(my_device))
+	{
+		pr_err("create device file failed !!! \n");
+		ret = PTR_ERR(my_device);
+		goto class_del;
+	}
 
 	return 0;
+
+class_del:
+	class_destroy(my_class);
+
+cdev_unregister:
+	cdev_del(my_cdev);
+
+unregister_dev_num:
+	unregister_chrdev_region(dev_num,1);
+
+out:
+	pr_err("module create failed !! \n");
+	return ret;
+
+
 
 }
 
 
 static void __exit char_driver_exit(void)
 {
-	cdev_del(my_cdev);
-	device_destroy(my_class,dev);
+	device_destroy(my_class,dev_num);
 	class_destroy(my_class);
-	unregister_chrdev_region(dev,1);
+	cdev_del(my_cdev);
+	unregister_chrdev_region(dev_num,1);
 	pr_info("the module has  removed !!! \n");
 }
 
