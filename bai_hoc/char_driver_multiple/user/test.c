@@ -10,21 +10,21 @@ char *msg = "hello world";
 int main()
 {
 	memset(buffer,0,sizeof(buffer));
-	int fd = open("/dev/my_device-2",O_WRONLY);
+	int fd = open("/dev/my_device-4",O_RDWR);
 	if(fd < 0)
 	{
 		printf("cant open the file !!! \n");
 		exit(1);
 	}
 
-	int ret = write(fd,msg,100);
+	int ret = read(fd,buffer,strlen(msg));
 	if(ret < 0)
 	{
 		printf("EOF\n");
 		exit(1);
 	}
 	
-	//printf("%s\n",buffer);
+	printf("%s\n",buffer);
 
 	close(fd);
 	

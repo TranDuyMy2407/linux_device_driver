@@ -13,7 +13,11 @@ help:
 
 insert:
 	sudo insmod char_driver.ko
-	sudo chmod 777 /dev/ | grep my_device
+	sudo chmod 777 /dev/my_device-1
+	sudo chmod 777 /dev/my_device-2
+	sudo chmod 777 /dev/my_device-3
+	sudo chmod 777 /dev/my_device-4
+
 
 remove:
 	sudo rmmod char_driver
