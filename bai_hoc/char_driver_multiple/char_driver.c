@@ -9,10 +9,10 @@
 
 /*size device memory*/
 
-#define DEV_MEM_SIZE_DEV1	1024
-#define DEV_MEM_SIZE_DEV2	512
-#define DEV_MEM_SIZE_DEV3	1024
-#define DEV_MEM_SIZE_DEV4	512
+#define DEV_MEM_SIZE_DEV0	1024
+#define DEV_MEM_SIZE_DEV1	512
+#define DEV_MEM_SIZE_DEV2	1024
+#define DEV_MEM_SIZE_DEV3	512
 
 
 /*device permission*/
@@ -21,10 +21,10 @@
 #define RDWR			0x3
 
 /*device buffer*/
+char device0_buffer[DEV_MEM_SIZE_DEV0];
 char device1_buffer[DEV_MEM_SIZE_DEV1];
 char device2_buffer[DEV_MEM_SIZE_DEV2];
 char device3_buffer[DEV_MEM_SIZE_DEV3];
-char device4_buffer[DEV_MEM_SIZE_DEV4];
 
 /* device private data*/
 struct device_private_data
@@ -53,10 +53,10 @@ struct driver_private_data drv_data =
 	.total = NO_OF_DEVICES,
 	.dev_data=
 	{
-		[0] = {.buffer = device1_buffer, .size = DEV_MEM_SIZE_DEV1, .perm = RDONLY, .serial_number = "dev1_serial_number"},
-		[1] = {.buffer = device2_buffer, .size = DEV_MEM_SIZE_DEV2, .perm = WRONLY, .serial_number = "dev2_serial_number"},
-		[2] = {.buffer = device3_buffer, .size = DEV_MEM_SIZE_DEV3, .perm = RDWR,   .serial_number = "dev3_serial_number"},
-		[3] = {.buffer = device3_buffer, .size = DEV_MEM_SIZE_DEV4, .perm = RDWR,   .serial_number = "dev4_serial_number"}
+		[0] = {.buffer = device0_buffer, .size = DEV_MEM_SIZE_DEV0, .perm = RDONLY, .serial_number = "dev0_serial_number"},
+		[1] = {.buffer = device1_buffer, .size = DEV_MEM_SIZE_DEV1, .perm = WRONLY, .serial_number = "dev1_serial_number"},
+		[2] = {.buffer = device2_buffer, .size = DEV_MEM_SIZE_DEV2, .perm = RDWR,   .serial_number = "dev2_serial_number"},
+		[3] = {.buffer = device3_buffer, .size = DEV_MEM_SIZE_DEV3, .perm = RDWR,   .serial_number = "dev3_serial_number"}
 	}
 };
 
@@ -85,7 +85,7 @@ static int  my_open(struct inode *inode , struct file *filp)
 	pr_info("device access mode : %x \n",filp->f_mode);
 
 	//save device data
-	filp->private_data = (void*)dev_data;
+	filp->private_data = dev_data;
 
 	/*check permission*/
 	ret = check_permission(dev_data->perm , filp->f_mode);
