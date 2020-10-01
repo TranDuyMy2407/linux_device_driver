@@ -4,29 +4,50 @@
 #include<fcntl.h>
 #include<string.h>
 
-char buffer[1024];
-char *msg = "hello world";
+char buffer1[1024];
+char buffer2[1024];
+char *msg = "Hello world";
 
 int main()
 {
-	memset(buffer,0,sizeof(buffer));
-	int fd = open("/dev/my_device-4",O_RDWR);
+	int fd = open("/dev/my_device-2",O_RDWR);
 	if(fd < 0)
 	{
 		printf("cant open the file !!! \n");
 		exit(1);
 	}
 
-	int ret = read(fd,buffer,strlen(msg));
+	
+	
+	int ret = read(fd,buffer1,100);
 	if(ret < 0)
 	{
-		printf("EOF\n");
+		printf("EOF");
+		return 0;
+	}
+
+
+	close(fd);
+	
+	int fd2 = open("/dev/my_device-3",O_RDWR);
+	if(fd2 < 0)
+	{
+		printf("cant open the file !! \n");
 		exit(1);
 	}
 	
-	printf("%s\n",buffer);
+	int ret2 = read(fd,buffer2,100);
+	if(ret2 < 0)
+	{
+		printf("EOF");
+		return 0;
+	}
+	close(fd2);
 
-	close(fd);
+
+
+	printf("my_dev-3 : %s\n",buffer1);
+	printf("my_dev-4 : %s\n ", buffer2);
 	
 	return 0;
 }

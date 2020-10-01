@@ -2,6 +2,7 @@
 #include<linux/device.h>
 #include<linux/cdev.h>
 #include<linux/fs.h>
+#include<linux/kdev_t.h>
 #include<linux/uaccess.h>
 
 #define NO_OF_DEVICES		4
@@ -30,8 +31,8 @@ struct device_private_data
 {
 	char *buffer;
 	unsigned int size;
-	unsigned int perm;
 	const char *serial_number;
+	unsigned int perm;
 	struct cdev cdev;
 };
 
@@ -59,8 +60,7 @@ struct driver_private_data drv_data =
 	}
 };
 
-
-int check_permission(int perm, int access_mode)
+static int check_permission(int perm, int access_mode)
 {
 	if(perm == RDWR)
 		return 0;
@@ -75,18 +75,22 @@ int check_permission(int perm, int access_mode)
 }
 
 
-
 static int  my_open(struct inode *inode , struct file *filp)
 {
+	int ret;
 	/*get data of device*/
 	struct device_private_data *dev_data = container_of(inode->i_cdev, struct device_private_data, cdev);
 
-	/*check permission*/
-	int ret = check_permission(dev_data->perm , filp->f_mode);
-	(!ret)?pr_info("the device is opened successfully") : pr_info("permission denied !! \n");
+	pr_info("device access: %d \n",MINOR(inode->i_rdev));
+	pr_info("device access mode : %x \n",filp->f_mode);
 
 	//save device data
-	filp->private_data = dev_data;
+	filp->private_data = (void*)dev_data;
+
+	/*check permission*/
+	ret = check_permission(dev_data->perm , filp->f_mode);
+	(!ret)? pr_info("the device is opened successfully\n") : pr_info("permission denied !! \n");
+
 
 	return ret;
 }
@@ -103,7 +107,7 @@ static ssize_t  my_read(struct file *filp, __user char* buf , size_t count, loff
 	struct device_private_data *dev_data = (struct device_private_data*)filp->private_data;
 
 	/*check memory*/
-	if( (dev_data->size - *f_pos) > count)
+	if( (dev_data->size - *f_pos) < count)
 		count = dev_data->size - *f_pos;
 
 	/*copy kernel buffer to user buffer*/
@@ -118,17 +122,21 @@ static ssize_t  my_read(struct file *filp, __user char* buf , size_t count, loff
 }
 
 
-static ssize_t my_write(struct file *filp , const __user char *buf, size_t count, loff_t *f_pos)
+static ssize_t my_write(struct file *filp , const  char __user  *buf, size_t count, loff_t *f_pos)
 {
 	/*get data saved from open method*/
 	struct device_private_data *dev_data = (struct device_private_data*)filp->private_data;
+	memset(dev_data->buffer,0,dev_data->size);
 
 	/*check memory*/
-	if( (dev_data->size - *f_pos) > count )
+	if( (dev_data->size - *f_pos) < count )
 		count = dev_data->size - *f_pos;
 
 	if(!count)
+	{
+		pr_err("no space left on the device !!");
 		return -ENOMEM;
+	}
 
 	/*copy data from user buffer to kernel buffer*/
 	if( copy_from_user(dev_data->buffer, buf, count) )
@@ -184,16 +192,19 @@ struct file_operations fops =
 static int __init char_driver_init(void)
 {
 	int ret , i=0;
-	if( (ret = alloc_chrdev_region(&drv_data.dev_number, 1, NO_OF_DEVICES, "my_device")) )
+
+	ret = alloc_chrdev_region(&drv_data.dev_number,0,NO_OF_DEVICES,"my_char_driver");
+	if(ret < 0)
 	{
-		pr_info("allocate device number failed !! \n");
+		pr_err("allocate device number failed !! ");
 		goto out;
 	}
+
 	
 	drv_data.drv_class = class_create(THIS_MODULE,"my_class");
 	if(IS_ERR(drv_data.drv_class))
 	{
-		pr_info("create class device failed !! ");
+		pr_err("create class device failed !! ");
 		ret = PTR_ERR(drv_data.drv_class);
 		goto unregister_dev_num;
 	}
@@ -206,16 +217,16 @@ static int __init char_driver_init(void)
 		ret = cdev_add(&drv_data.dev_data[i].cdev,drv_data.dev_number+i,1);
 		if(ret)
 		{
-			pr_info("register device failed !! \n")	;
+			pr_err("register device failed !! \n")	;
 			goto class_del;
 		}
 
 	
 
-		drv_data.drv_device = device_create(drv_data.drv_class,NULL,drv_data.dev_number+i,NULL,"my_device-%d",i+1);
+		drv_data.drv_device = device_create(drv_data.drv_class,NULL,drv_data.dev_number+i,NULL,"my_device-%d",i);
 		if(IS_ERR(drv_data.drv_device))
-			{
-			pr_info("create device file failed !! ");
+		{
+			pr_err("create device file failed !! ");
 			ret = PTR_ERR(drv_data.drv_device);
 			goto class_del;
 		}
