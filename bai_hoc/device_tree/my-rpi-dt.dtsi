@@ -1,0 +1,22 @@
+/
+{
+	device-0
+	{
+		compatible = "my_platform_device-0";
+	};
+
+	device-1
+	{	
+		compatible = "my_platform_device-1";
+	};
+
+	device-2
+	{
+		compatible = "my_platform_device-2";
+	};
+
+	device-3
+	{
+		compatible = "my_platform_device-3";
+	};
+};
