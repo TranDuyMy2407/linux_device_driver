@@ -1,1 +1,0 @@
-cmd_/home/pi/Desktop/linux_device_driver/bai_hoc/device_tree/platform_driver_dt.mod := { echo  /home/pi/Desktop/linux_device_driver/bai_hoc/device_tree/platform_driver_dt.o; echo; } > /home/pi/Desktop/linux_device_driver/bai_hoc/device_tree/platform_driver_dt.mod
